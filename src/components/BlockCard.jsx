@@ -1,0 +1,131 @@
+import React, { memo } from 'react';
+import { Link } from 'react-router-dom';
+import styled from 'styled-components';
+import { formatTimestamp, formatNumber, truncateMiddle, identifyMiner } from '../utils/formatters';
+
+/**
+ * BlockCard component for displaying a blockchain block in a list item format
+ * Wrapped with React.memo for performance optimization to prevent unnecessary re-renders
+ */
+const BlockCard = ({ block }) => {
+  if (!block) return null;
+  
+  return (
+    <BlockCardContainer>
+      <BlockHeader>
+        <BlockHeight>Block #{block.height}</BlockHeight>
+        <BlockTime>{formatTimestamp(block.timestamp)}</BlockTime>
+      </BlockHeader>
+      
+      <BlockContent>
+        <BlockDetail>
+          <DetailLabel>Hash:</DetailLabel>
+          <DetailValue monospace>
+            <Link to={`/btc/block/${block.hash}`}>{truncateMiddle(block.hash, 8, 8)}</Link>
+          </DetailValue>
+        </BlockDetail>
+        
+        <BlockDetail>
+          <DetailLabel>Miner:</DetailLabel>
+          <DetailValue>{identifyMiner(block.coinbase || '')}</DetailValue>
+        </BlockDetail>
+        
+        <BlockDetail>
+          <DetailLabel>Transactions:</DetailLabel>
+          <DetailValue>{formatNumber(block.tx_count || 0)}</DetailValue>
+        </BlockDetail>
+        
+        <BlockDetail>
+          <DetailLabel>Size:</DetailLabel>
+          <DetailValue>{formatNumber(block.size || 0)} bytes</DetailValue>
+        </BlockDetail>
+      </BlockContent>
+      
+      <BlockFooter>
+        <ViewDetailsLink to={`/btc/block/${block.hash}`}>View Details</ViewDetailsLink>
+      </BlockFooter>
+    </BlockCardContainer>
+  );
+};
+
+// Styled components
+const BlockCardContainer = styled.div`
+  background-color: ${({ theme }) => theme.colors.white};
+  border-radius: ${({ theme }) => theme.borderRadius.medium};
+  box-shadow: ${({ theme }) => theme.shadows.small};
+  margin-bottom: ${({ theme }) => theme.spacing.medium};
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: ${({ theme }) => theme.shadows.medium};
+  }
+`;
+
+const BlockHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${({ theme }) => theme.spacing.medium};
+  background-color: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.white};
+`;
+
+const BlockHeight = styled.h3`
+  font-weight: 600;
+  margin: 0;
+`;
+
+const BlockTime = styled.span`
+  font-size: ${({ theme }) => theme.fontSizes.small};
+`;
+
+const BlockContent = styled.div`
+  padding: ${({ theme }) => theme.spacing.medium};
+`;
+
+const BlockDetail = styled.div`
+  display: flex;
+  margin-bottom: ${({ theme }) => theme.spacing.small};
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const DetailLabel = styled.span`
+  flex: 0 0 110px;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.textLight};
+`;
+
+const DetailValue = styled.span`
+  flex: 1;
+  word-break: ${props => props.monospace ? 'break-all' : 'normal'};
+  font-family: ${props => props.monospace ? 'monospace' : 'inherit'};
+`;
+
+const BlockFooter = styled.div`
+  padding: ${({ theme }) => theme.spacing.medium};
+  background-color: ${({ theme }) => theme.colors.backgroundLight};
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+  text-align: right;
+`;
+
+const ViewDetailsLink = styled(Link)`
+  display: inline-block;
+  padding: ${({ theme }) => `${theme.spacing.small} ${theme.spacing.medium}`};
+  background-color: ${({ theme }) => theme.colors.primary};
+  color: ${({ theme }) => theme.colors.white};
+  border-radius: ${({ theme }) => theme.borderRadius.small};
+  font-weight: 600;
+  
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.primaryDark};
+    text-decoration: none;
+  }
+`;
+
+// Export memoized component to prevent unnecessary re-renders
+export default memo(BlockCard);
