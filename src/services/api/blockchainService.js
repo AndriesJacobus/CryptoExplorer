@@ -32,6 +32,32 @@ const ENDPOINTS = {
 };
 
 /**
+ * Calculate transaction volume from raw block data
+ * Sums all outputs from non-coinbase transactions
+ * @param {Object} rawBlockData - The raw block data containing transactions
+ * @returns {number} - Total transaction volume
+ */
+const calculateTransactionVolume = (rawBlockData) => {
+  let transactionVolume = 0;
+  
+  if (rawBlockData?.tx && rawBlockData.tx.length > 0) {
+    // Skip coinbase transaction (first transaction) when calculating volume
+    for (let i = 1; i < rawBlockData.tx.length; i++) {
+      const tx = rawBlockData.tx[i];
+      if (tx.out && tx.out.length > 0) {
+        for (const output of tx.out) {
+          if (output.value) {
+            transactionVolume += output.value;
+          }
+        }
+      }
+    }
+  }
+  
+  return transactionVolume;
+};
+
+/**
  * Get the latest blocks from the blockchain
  * @param {number} count - Number of latest blocks to fetch
  * @returns {Promise} - Promise resolving to the latest blocks
@@ -57,21 +83,8 @@ export const getLatestBlocks = async (count = 10) => {
         // Fetch raw block data with coinbase transaction
         const rawBlockData = await getRawBlockData(block.hash);
         
-        // Calculate transaction volume (sum of all outputs)
-        let transactionVolume = 0;
-        if (rawBlockData.tx && rawBlockData.tx.length > 0) {
-          // Skip coinbase transaction (first transaction) when calculating volume
-          for (let i = 1; i < rawBlockData.tx.length; i++) {
-            const tx = rawBlockData.tx[i];
-            if (tx.out && tx.out.length > 0) {
-              for (const output of tx.out) {
-                if (output.value) {
-                  transactionVolume += output.value;
-                }
-              }
-            }
-          }
-        }
+        // Calculate transaction volume using helper function
+        const transactionVolume = calculateTransactionVolume(rawBlockData);
         
         // Calculate confirmations
         const confirmations = latestBlockHeight - block.height + 1;
@@ -155,21 +168,8 @@ export const getBlockByHash = async (blockHash) => {
     const latestBlockHeight = parseInt(latestBlockResponse.data, 10);
     const confirmations = latestBlockHeight - blockData.height + 1;
     
-    // Calculate transaction volume (sum of all outputs excluding coinbase)
-    let transactionVolume = 0;
-    if (rawBlockData.tx && rawBlockData.tx.length > 0) {
-      // Skip coinbase transaction when calculating volume
-      for (let i = 1; i < rawBlockData.tx.length; i++) {
-        const tx = rawBlockData.tx[i];
-        if (tx.out && tx.out.length > 0) {
-          for (const output of tx.out) {
-            if (output.value) {
-              transactionVolume += output.value;
-            }
-          }
-        }
-      }
-    }
+    // Calculate transaction volume using helper function
+    const transactionVolume = calculateTransactionVolume(rawBlockData);
     
     // Add enhanced information to the block
     return {
@@ -204,21 +204,8 @@ export const getBlockByHeight = async (blockHeight) => {
     const latestBlockHeight = parseInt(latestBlockResponse.data, 10);
     const confirmations = latestBlockHeight - blockHeight + 1;
     
-    // Calculate transaction volume (sum of all outputs excluding coinbase)
-    let transactionVolume = 0;
-    if (rawBlockData.tx && rawBlockData.tx.length > 0) {
-      // Skip coinbase transaction when calculating volume
-      for (let i = 1; i < rawBlockData.tx.length; i++) {
-        const tx = rawBlockData.tx[i];
-        if (tx.out && tx.out.length > 0) {
-          for (const output of tx.out) {
-            if (output.value) {
-              transactionVolume += output.value;
-            }
-          }
-        }
-      }
-    }
+    // Calculate transaction volume using helper function
+    const transactionVolume = calculateTransactionVolume(rawBlockData);
     
     // Add enhanced information to the block
     return {
@@ -317,21 +304,8 @@ export const getAdditionalBlocks = async (startHeight, count = 10) => {
         // Fetch raw block data with coinbase transaction
         const rawBlockData = await getRawBlockData(block.hash);
         
-        // Calculate transaction volume (sum of all outputs)
-        let transactionVolume = 0;
-        if (rawBlockData.tx && rawBlockData.tx.length > 0) {
-          // Skip coinbase transaction (first transaction) when calculating volume
-          for (let i = 1; i < rawBlockData.tx.length; i++) {
-            const tx = rawBlockData.tx[i];
-            if (tx.out && tx.out.length > 0) {
-              for (const output of tx.out) {
-                if (output.value) {
-                  transactionVolume += output.value;
-                }
-              }
-            }
-          }
-        }
+        // Calculate transaction volume using helper function
+        const transactionVolume = calculateTransactionVolume(rawBlockData);
         
         // Calculate confirmations
         const confirmations = latestBlockHeight - block.height + 1;
@@ -395,21 +369,8 @@ export const getNewerBlocks = async (highestKnownHeight, maxCount = 10) => {
           // Fetch raw block data with coinbase transaction
           const rawBlockData = await getRawBlockData(block.hash);
           
-          // Calculate transaction volume (sum of all outputs)
-          let transactionVolume = 0;
-          if (rawBlockData.tx && rawBlockData.tx.length > 0) {
-            // Skip coinbase transaction (first transaction) when calculating volume
-            for (let i = 1; i < rawBlockData.tx.length; i++) {
-              const tx = rawBlockData.tx[i];
-              if (tx.out && tx.out.length > 0) {
-                for (const output of tx.out) {
-                  if (output.value) {
-                    transactionVolume += output.value;
-                  }
-                }
-              }
-            }
-          }
+          // Calculate transaction volume using helper function
+          const transactionVolume = calculateTransactionVolume(rawBlockData);
           
           // Calculate confirmations
           const confirmations = latestBlockHeight - block.height + 1;
