@@ -4,6 +4,7 @@ import { formatNumber } from '../utils/formatters';
 
 /**
  * Component for displaying cryptocurrency price and market information
+ * Enhanced to be fully responsive on mobile screens
  */
 const CryptoPriceCard = ({ crypto }) => {
   const { name, symbol, price, change24h, marketCap, logo } = crypto;
@@ -14,7 +15,7 @@ const CryptoPriceCard = ({ crypto }) => {
   return (
     <CardContainer>
       <CardHeader>
-        {logo && <CryptoLogo src={logo} alt={`${name} logo`} />}
+        {logo && <CryptoLogo src={logo} alt={``} />}
         <CryptoName>{name}</CryptoName>
         <CryptoSymbol>{symbol}</CryptoSymbol>
       </CardHeader>
@@ -41,18 +42,36 @@ const CardContainer = styled.div`
   box-shadow: ${({ theme }) => theme.shadows.small};
   padding: 1.25rem;
   margin-bottom: 1rem;
+  width: 100%; /* Ensure it takes full width of parent */
+  max-width: 100%; /* Prevent overflow */
+  box-sizing: border-box; /* Include padding in width calculation */
+  overflow: hidden; /* Prevent content from causing overflow */
+  
+  @media (max-width: 480px) {
+    padding: 1rem; /* Slightly reduce padding on very small screens */
+  }
 `;
 
 const CardHeader = styled.div`
   display: flex;
   align-items: center;
   margin-bottom: 1rem;
+  flex-wrap: wrap; /* Allow wrapping on very small screens */
+  
+  @media (max-width: 350px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 `;
 
 const CryptoLogo = styled.img`
   width: 24px;
   height: 24px;
   margin-right: 0.75rem;
+  
+  @media (max-width: 350px) {
+    margin-bottom: 0.5rem;
+  }
 `;
 
 const CryptoName = styled.h3`
@@ -60,6 +79,10 @@ const CryptoName = styled.h3`
   font-weight: 600;
   margin: 0;
   margin-right: 0.5rem;
+  
+  @media (max-width: 480px) {
+    font-size: ${({ theme }) => theme.fontSizes.small};
+  }
 `;
 
 const CryptoSymbol = styled.span`
@@ -72,12 +95,18 @@ const PriceSection = styled.div`
   display: flex;
   align-items: baseline;
   margin-bottom: 1rem;
+  flex-wrap: wrap; /* Allow wrapping on very small screens */
 `;
 
 const CurrentPrice = styled.span`
   font-size: ${({ theme }) => theme.fontSizes.large};
   font-weight: 700;
   margin-right: 0.75rem;
+  word-break: break-word; /* Prevent overflow of long prices */
+  
+  @media (max-width: 480px) {
+    font-size: ${({ theme }) => theme.fontSizes.medium};
+  }
 `;
 
 const PriceChange = styled.span`
@@ -90,6 +119,7 @@ const MarketCapSection = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap; /* Allow wrapping on very small screens */
 `;
 
 const MarketCapLabel = styled.span`
@@ -100,6 +130,7 @@ const MarketCapLabel = styled.span`
 const MarketCapValue = styled.span`
   font-size: ${({ theme }) => theme.fontSizes.small};
   font-weight: 600;
+  word-break: break-word; /* Prevent overflow of long market cap values */
 `;
 
 export default CryptoPriceCard;

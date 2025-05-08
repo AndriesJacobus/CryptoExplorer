@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { formatTimestamp, formatNumber, truncateMiddle, identifyMiner } from '../utils/formatters';
+import { formatTimestamp, formatNumber, truncateMiddle, identifyMiner, formatBtcAmount } from '../utils/formatters';
 
 /**
  * BlockCard component for displaying a blockchain block in a list item format
@@ -14,7 +14,7 @@ const BlockCard = ({ block }) => {
     <BlockCardContainer>
       <BlockHeader>
         <BlockHeight>Block #{block.height}</BlockHeight>
-        <BlockTime>{formatTimestamp(block.timestamp)}</BlockTime>
+        <BlockTime>{formatTimestamp(block.time)}</BlockTime>
       </BlockHeader>
       
       <BlockContent>
@@ -27,17 +27,32 @@ const BlockCard = ({ block }) => {
         
         <BlockDetail>
           <DetailLabel>Miner:</DetailLabel>
-          <DetailValue>{identifyMiner(block.coinbase || '')}</DetailValue>
+          <DetailValue>{block.miner || identifyMiner(block.coinbase || '')}</DetailValue>
         </BlockDetail>
         
         <BlockDetail>
           <DetailLabel>Transactions:</DetailLabel>
-          <DetailValue>{formatNumber(block.tx_count || 0)}</DetailValue>
+          <DetailValue>{formatNumber(block.tx.length || 0)}</DetailValue>
         </BlockDetail>
         
         <BlockDetail>
           <DetailLabel>Size:</DetailLabel>
           <DetailValue>{formatNumber(block.size || 0)} bytes</DetailValue>
+        </BlockDetail>
+
+        <BlockDetail>
+          <DetailLabel>Confirmations:</DetailLabel>
+          <DetailValue>{formatNumber(block.confirmations || 0)}</DetailValue>
+        </BlockDetail>
+
+        <BlockDetail>
+          <DetailLabel>Difficulty:</DetailLabel>
+          <DetailValue>{formatNumber(block.difficulty || 0)}</DetailValue>
+        </BlockDetail>
+
+        <BlockDetail>
+          <DetailLabel>Transaction Volume:</DetailLabel>
+          <DetailValue>{block.transactionVolume ? formatBtcAmount(block.transactionVolume) : 'Unknown'}</DetailValue>
         </BlockDetail>
       </BlockContent>
       

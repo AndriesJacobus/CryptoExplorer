@@ -44,7 +44,7 @@ const BlockDetailPage = () => {
     const totalFees = block.fee_total || 0;
     const transactionCount = block.tx?.length || 0;
     const averageFee = transactionCount > 0 ? totalFees / transactionCount : 0;
-    const minerName = identifyMiner(block.coinbase || '');
+    const minerName = block.miner || identifyMiner(block.coinbase || '');
     const sizeInKb = block.size ? (block.size / 1024).toFixed(2) : '0';
     const blockReward = block.reward || 625000000; // Current block reward (6.25 BTC)
     
@@ -54,6 +54,9 @@ const BlockDetailPage = () => {
     // Calculate confirmation count (usually from the API, but as a fallback)
     const confirmations = block.confirmations || 0;
     
+    // Get transaction volume from the correct property
+    const transactionVolume = block.transactionVolume || 0;
+    
     return {
       totalFees,
       transactionCount,
@@ -62,7 +65,8 @@ const BlockDetailPage = () => {
       sizeInKb,
       blockReward,
       formattedTimestamp,
-      confirmations
+      confirmations,
+      transactionVolume
     };
   }, [block]);
 
@@ -85,7 +89,7 @@ const BlockDetailPage = () => {
           onRetry={handleRetry}
         />
         <ErrorActionButton onClick={() => window.history.back()}>
-          Return to Home
+          Back
         </ErrorActionButton>
       </ErrorContainer>
     );
@@ -184,7 +188,11 @@ const BlockDetailPage = () => {
           
           <DetailItem>
             <DetailLabel>Transaction Volume</DetailLabel>
-            <DetailValue>{block.total ? formatBtcAmount(block.total) : 'Calculating...'}</DetailValue>
+            <DetailValue>
+              {derivedData?.transactionVolume ? 
+                formatBtcAmount(derivedData.transactionVolume) : 
+                (block.total ? formatBtcAmount(block.total) : 'No transactions')}
+            </DetailValue>
           </DetailItem>
           
           <DetailItem>

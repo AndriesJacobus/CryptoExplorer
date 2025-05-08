@@ -58,6 +58,10 @@ const ErrorContainer = styled.div`
   border: 1px solid ${({ theme }) => theme.colors.error};
   border-radius: ${({ theme }) => theme.borderRadius.medium};
   margin: 1rem 0;
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
 `;
 
 const ErrorIcon = styled.div`
@@ -72,10 +76,18 @@ const ErrorIcon = styled.div`
   border-radius: 50%;
   font-weight: bold;
   margin-right: 1rem;
+  
+  @media (max-width: 480px) {
+    margin-bottom: 1rem;
+    margin-right: 0;
+  }
 `;
 
 const ErrorContent = styled.div`
   flex: 1;
+  width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 `;
 
 const ErrorTitle = styled.h3`
@@ -85,6 +97,8 @@ const ErrorTitle = styled.h3`
 
 const ErrorText = styled.p`
   margin: 0 0 1rem 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 `;
 
 const RetryButton = styled.button`
@@ -108,9 +122,13 @@ const CorsTip = styled.div`
   padding: 0.75rem;
   margin: 0.5rem 0 1rem;
   font-size: 0.9rem;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
   
   p {
     margin: 0.5rem 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   
   a {
@@ -118,6 +136,8 @@ const CorsTip = styled.div`
     display: block;
     margin: 0.5rem 0;
     font-weight: 600;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 `;
 

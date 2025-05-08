@@ -1,26 +1,78 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import blockchainService from '../services/api/blockchainService';
 import cryptoService from '../services/api/cryptoService';
+import BlockTable from '../components/BlockTable';
 import BlockCard from '../components/BlockCard';
 import CryptoPriceCard from '../components/CryptoPriceCard';
 import ErrorMessage from '../components/ErrorMessage';
 
 const HomePage = () => {
-  const [blocksToShow, setBlocksToShow] = useState(10);
+  // State to store all loaded blocks
+  const [blocks, setBlocks] = useState([]);
+  // State to track if we're loading more blocks
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // State to track if we're checking for new blocks
+  const [isCheckingNew, setIsCheckingNew] = useState(false);
+  // State to track the lowest block height we've loaded
+  const [lowestBlockHeight, setLowestBlockHeight] = useState(null);
+  // State to track the highest block height we've loaded
+  const [highestBlockHeight, setHighestBlockHeight] = useState(null);
+  // Initial number of blocks to load
+  const initialBlockCount = 10;
+  // Number of additional blocks to load when clicking "Load More"
+  const additionalBlockCount = 10;
+  // New state to track screen width for responsive layout
+  const [isMobile, setIsMobile] = useState(false);
   
-  // Fetch latest blocks with React Query
+  // Effect to handle window resize and determine if mobile view should be shown
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Initial check
+    checkIfMobile();
+    
+    // Add event listener
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile);
+  }, []);
+  
+  // Fetch initial latest blocks with React Query
   const { 
-    data: latestBlocks, 
-    isLoading: blocksLoading, 
+    data: latestBlocks,
+    isLoading: initialLoading, 
     error: blocksError,
     refetch: refetchBlocks 
   } = useQuery({
-    queryKey: ['latestBlocks', blocksToShow],
-    queryFn: () => blockchainService.getLatestBlocks(blocksToShow),
-    retry: 1, // Only retry once before showing error
+    queryKey: ['latestBlocks', initialBlockCount],
+    queryFn: () => blockchainService.getLatestBlocks(initialBlockCount),
+    retry: 1,
+    refetchOnWindowFocus: false,
+    staleTime: 60000, // 1 minute
+    onSuccess: (data) => {
+      if (data && Array.isArray(data) && data.length > 0) {
+        setBlocks(data);
+        const sortedBlocks = [...data].sort((a, b) => b.height - a.height);
+        setLowestBlockHeight(sortedBlocks[sortedBlocks.length - 1].height);
+        setHighestBlockHeight(sortedBlocks[0].height);
+      }
+    }
   });
+
+  // Use effect to set blocks when latestBlocks data is available
+  useEffect(() => {
+    if (latestBlocks && Array.isArray(latestBlocks) && latestBlocks.length > 0) {
+      setBlocks(latestBlocks);
+      const sortedBlocks = [...latestBlocks].sort((a, b) => b.height - a.height);
+      setLowestBlockHeight(sortedBlocks[sortedBlocks.length - 1].height);
+      setHighestBlockHeight(sortedBlocks[0].height);
+    }
+  }, [latestBlocks]);
 
   // Fetch cryptocurrency prices
   const {
@@ -32,14 +84,75 @@ const HomePage = () => {
     queryFn: () => cryptoService.getCryptoPrices(),
     staleTime: 300000, // 5 minutes cache
     retry: 1,
+    refetchOnWindowFocus: false,
   });
 
-  const handleLoadMore = () => {
-    setBlocksToShow(prevCount => prevCount + 5);
+  // Handle loading more blocks, including checking for newer blocks
+  const handleLoadMore = async () => {
+    if (isLoadingMore || !lowestBlockHeight || !highestBlockHeight) return;
+    
+    try {
+      setIsLoadingMore(true);
+      
+      // First, check for newer blocks
+      setIsCheckingNew(true);
+      const newerBlocks = await blockchainService.getNewerBlocks(highestBlockHeight, additionalBlockCount);
+      setIsCheckingNew(false);
+      
+      // Then get older blocks
+      const olderBlocks = await blockchainService.getAdditionalBlocks(lowestBlockHeight, additionalBlockCount);
+      
+      // Update state with both new and old blocks
+      if ((newerBlocks && newerBlocks.length > 0) || (olderBlocks && olderBlocks.length > 0)) {
+        setBlocks(prevBlocks => {
+          // Combine all blocks: newer + current + older
+          const combinedBlocks = [...(newerBlocks || []), ...prevBlocks, ...(olderBlocks || [])];
+          
+          // Remove any duplicates based on block hash
+          const uniqueBlocks = Array.from(
+            new Map(combinedBlocks.map(block => [block.hash, block])).values()
+          );
+          
+          // Sort blocks by height in descending order (latest blocks first)
+          return uniqueBlocks.sort((a, b) => b.height - a.height);
+        });
+        
+        // Update the lowest block height if we got older blocks
+        if (olderBlocks && olderBlocks.length > 0) {
+          const lowestNewBlock = [...olderBlocks].sort((a, b) => a.height - b.height)[0];
+          setLowestBlockHeight(lowestNewBlock.height);
+        }
+        
+        // Update the highest block height if we got newer blocks
+        if (newerBlocks && newerBlocks.length > 0) {
+          const highestNewBlock = [...newerBlocks].sort((a, b) => b.height - a.height)[0];
+          setHighestBlockHeight(highestNewBlock.height);
+        }
+      }
+    } catch (error) {
+      console.error("Error during block update:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   const handleRetry = () => {
     refetchBlocks();
+  };
+
+  // Render blocks as cards for mobile view
+  const renderBlockCards = () => {
+    if (!blocks || blocks.length === 0) {
+      return <EmptyMessage>No blocks found</EmptyMessage>;
+    }
+    
+    return (
+      <BlockCardsContainer>
+        {blocks.map(block => (
+          <BlockCard key={block.hash} block={block} />
+        ))}
+      </BlockCardsContainer>
+    );
   };
 
   return (
@@ -80,7 +193,7 @@ const HomePage = () => {
             <h2>Latest Blocks</h2>
           </SectionHeader>
           
-          {blocksLoading && <LoadingMessage>Loading latest blocks...</LoadingMessage>}
+          {initialLoading && <LoadingMessage>Loading latest blocks...</LoadingMessage>}
           
           {blocksError && (
             <ErrorMessage
@@ -90,21 +203,26 @@ const HomePage = () => {
             />
           )}
           
-          {!blocksLoading && !blocksError && latestBlocks?.length > 0 && (
+          {!initialLoading && !blocksError && blocks?.length > 0 && (
             <>
-              <BlocksList>
-                {latestBlocks.map((block) => (
-                  <BlockCard key={block.hash} block={block} />
-                ))}
-              </BlocksList>
+              {/* Conditionally render based on screen size */}
+              {isMobile ? renderBlockCards() : <BlockTable blocks={blocks} isLoading={false} />}
               
-              <LoadMoreButton onClick={handleLoadMore}>
-                Load More Blocks
-              </LoadMoreButton>
+              <LoadMoreButtonContainer>
+                <LoadMoreButton 
+                  onClick={handleLoadMore} 
+                  disabled={isLoadingMore}
+                >
+                  {isLoadingMore ? (
+                    isCheckingNew ? 'Checking for new blocks...' : 'Loading...'
+                  ) : 'Load More Blocks'}
+                </LoadMoreButton>
+                {isLoadingMore && <LoadingSpinner />}
+              </LoadMoreButtonContainer>
             </>
           )}
           
-          {!blocksLoading && !blocksError && (!latestBlocks || latestBlocks.length === 0) && (
+          {!initialLoading && !blocksError && (!blocks || blocks.length === 0) && (
             <EmptyMessage>No blocks found</EmptyMessage>
           )}
         </MainContentSection>
@@ -129,6 +247,10 @@ const HeaderSection = styled.section`
     font-size: ${({ theme }) => theme.fontSizes.xxlarge};
     margin-bottom: 0.5rem;
     color: ${({ theme }) => theme.colors.primary};
+    
+    @media (max-width: 768px) {
+      font-size: ${({ theme }) => theme.fontSizes.xlarge};
+    }
   }
   
   p {
@@ -167,18 +289,22 @@ const SectionHeader = styled.div`
   h2 {
     color: ${({ theme }) => theme.colors.text};
     font-size: ${({ theme }) => theme.fontSizes.xlarge};
+    
+    @media (max-width: 768px) {
+      font-size: ${({ theme }) => theme.fontSizes.large};
+    }
   }
-`;
-
-const BlocksList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
 `;
 
 const CryptoCardsList = styled.div`
   display: flex;
   flex-direction: column;
+  gap: 1rem;
+`;
+
+const BlockCardsContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 1rem;
 `;
 
@@ -197,19 +323,41 @@ const EmptyMessage = styled.div`
   color: ${({ theme }) => theme.colors.textLight};
 `;
 
+const LoadMoreButtonContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.5rem;
+`;
+
 const LoadMoreButton = styled.button`
-  display: block;
-  margin: 1.5rem auto 0;
   padding: 0.75rem 1.5rem;
-  background-color: ${({ theme }) => theme.colors.secondary};
+  background-color: ${({ theme, disabled }) => 
+    disabled ? theme.colors.textLight : theme.colors.secondary};
   color: white;
+  border: none;
   border-radius: ${({ theme }) => theme.borderRadius.small};
   font-weight: 600;
-  cursor: pointer;
+  cursor: ${({ disabled }) => disabled ? 'not-allowed' : 'pointer'};
   transition: background-color 0.2s;
   
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: ${({ theme }) => theme.colors.tertiary};
+  }
+`;
+
+const LoadingSpinner = styled.div`
+  margin-left: 1rem;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border-left-color: ${({ theme }) => theme.colors.primary};
+  animation: spin 1s linear infinite;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 `;
 

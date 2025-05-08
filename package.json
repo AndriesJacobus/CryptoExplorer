@@ -1,5 +1,5 @@
 {
-  "name": "valr-blockchain-explorer",
+  "name": "dup-blockchain-explorer",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.75.4",
+    "Buffer": "^0.0.0",
     "axios": "^1.9.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

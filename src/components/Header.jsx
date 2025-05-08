@@ -40,8 +40,8 @@ const Header = () => {
       <HeaderContent>
         <LogoSection>
           <Logo to="/">
-            <LogoIcon>₿</LogoIcon>
-            <LogoText>Block Explorer</LogoText>
+            <LogoImage src="/block-logo.png" alt="Logo" />
+            <LogoText>Dup Block Explorer</LogoText>
           </Logo>
         </LogoSection>
         
@@ -60,10 +60,6 @@ const Header = () => {
           </SearchForm>
           {searchError && <ErrorMessage>{searchError}</ErrorMessage>}
         </SearchSection>
-        
-        <NavSection>
-          <NavLink to="/">Home</NavLink>
-        </NavSection>
       </HeaderContent>
     </HeaderContainer>
   );
@@ -113,6 +109,28 @@ const LogoIcon = styled.span`
   font-size: 1.8rem;
   color: ${({ theme }) => theme.colors.primary};
   margin-right: 0.5rem;
+  border: 1px solid ${({ theme }) => theme.colors.primary};
+  border-radius: 50%;
+  padding: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  width: 2rem;
+  transform: rotate(12deg);
+  padding: 1.2rem;
+  padding-left: 1.3rem;
+  padding-right: 1.1rem;
+`;
+
+const LogoImage = styled.img`
+  width: 2rem;
+  height: 2rem;
+  margin-right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: ${({ theme }) => theme.colors.background};
 `;
 
 const LogoText = styled.h1`
