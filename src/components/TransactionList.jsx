@@ -103,6 +103,21 @@ const TransactionList = memo(({ blockHash, transactionHashes, initialCount = 10 
         console.log("Initial load: Setting transactions", newTransactionsData.length);
         setAllTransactions(newTransactionsData);
         prevTransactionsRef.current = [...newTransactionsData];
+        
+        // Apply animation to initial transactions with sequential indices
+        const initialAnimatedTxs = {};
+        newTransactionsData.forEach((tx, index) => {
+          initialAnimatedTxs[tx.txid || tx.hash] = index;
+        });
+        
+        setAnimatedTransactions(initialAnimatedTxs);
+        
+        // Clear animation flags after they complete
+        const animationDuration = calculateAnimationDuration(newTransactionsData.length);
+        setTimeout(() => {
+          setAnimatedTransactions({});
+        }, animationDuration);
+        
         initialLoadCompletedRef.current = true;
       }
     }
@@ -236,12 +251,14 @@ const TransactionList = memo(({ blockHash, transactionHashes, initialCount = 10 
           </TransactionsContainer>
 
           {hasMore && (
-            <LoadMoreButton 
-              onClick={handleLoadMore} 
-              disabled={loadingMore}
-            >
-              {loadingMore ? 'Loading...' : 'Load More Transactions'}
-            </LoadMoreButton>
+            <LoadMoreButtonContainer>
+              <LoadMoreButton 
+                onClick={handleLoadMore} 
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading...' : 'Load More Transactions'}
+              </LoadMoreButton>
+            </LoadMoreButtonContainer>
           )}
         </>
       )}
@@ -275,25 +292,25 @@ const TransactionsContainer = styled.div`
   margin-bottom: 1rem;
 `;
 
+const LoadMoreButtonContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0;
+`;
+
 const LoadMoreButton = styled.button`
-  display: block;
-  margin: 1.5rem auto;
   padding: 0.75rem 1.5rem;
-  background-color: ${({ theme }) => theme.colors.secondary};
+  background-color: ${({ theme, disabled }) => 
+    disabled ? theme.colors.textLight : theme.colors.secondary};
   color: white;
   border: none;
   border-radius: ${({ theme }) => theme.borderRadius.small};
   font-weight: 600;
-  cursor: pointer;
+  cursor: ${({ disabled }) => disabled ? 'not-allowed' : 'pointer'};
   transition: background-color 0.2s;
   
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: ${({ theme }) => theme.colors.tertiary};
-  }
-
-  &:disabled {
-    background-color: ${({ theme }) => theme.colors.disabled};
-    cursor: not-allowed;
   }
 `;
 

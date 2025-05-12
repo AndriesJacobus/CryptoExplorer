@@ -265,7 +265,6 @@ const HomePage = () => {
                     isCheckingNew ? 'Checking for new blocks...' : 'Loading...'
                   ) : 'Load More Blocks'}
                 </LoadMoreButton>
-                {isLoadingMore && <LoadingSpinner />}
               </LoadMoreButtonContainer>
             </>
           )}
