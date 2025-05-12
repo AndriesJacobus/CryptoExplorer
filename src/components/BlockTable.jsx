@@ -135,7 +135,7 @@ const BlockTable = ({ blocks, isLoading }) => {
           y={mousePosition.y}
           onClick={(e) => e.stopPropagation()}
         >
-          <BlockCard block={hoveredBlock} />
+          <BlockCard block={hoveredBlock} isTooltip={true} />
         </TooltipContainer>
       )}
     </TableContainer>

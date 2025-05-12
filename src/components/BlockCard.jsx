@@ -8,7 +8,7 @@ import { createSequencedAnimation } from '../styles/animations';
  * BlockCard component for displaying a blockchain block in a list item format
  * Wrapped with React.memo for performance optimization to prevent unnecessary re-renders
  */
-const BlockCard = ({ block, isNew, animationIndex = 0 }) => {
+const BlockCard = ({ block, isNew, animationIndex = 0, isTooltip = false }) => {
   if (!block) return null;
   
   return (
@@ -57,9 +57,11 @@ const BlockCard = ({ block, isNew, animationIndex = 0 }) => {
         </BlockDetail>
       </BlockContent>
       
-      <BlockFooter>
-        <ViewDetailsLink to={`/btc/block/${block.hash}`}>View Details</ViewDetailsLink>
-      </BlockFooter>
+      {!isTooltip && (
+        <BlockFooter>
+          <ViewDetailsLink to={`/btc/block/${block.hash}`}>View Details</ViewDetailsLink>
+        </BlockFooter>
+      )}
     </BlockCardContainer>
   );
 };
