@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import blockchainService from '../services/api/blockchainService';
@@ -25,6 +25,10 @@ const HomePage = () => {
   const additionalBlockCount = 10;
   // New state to track screen width for responsive layout
   const [isMobile, setIsMobile] = useState(false);
+  // Reference to keep track of previously loaded blocks for animation
+  const prevBlocksRef = useRef([]);
+  // State to track newly added blocks that should be animated
+  const [newBlockHashes, setNewBlockHashes] = useState({});
   
   // Effect to handle window resize and determine if mobile view should be shown
   useEffect(() => {
@@ -148,12 +152,56 @@ const HomePage = () => {
     
     return (
       <BlockCardsContainer>
-        {blocks.map(block => (
-          <BlockCard key={block.hash} block={block} />
+        {blocks.map((block) => (
+          <BlockCard 
+            key={block.hash} 
+            block={block} 
+            isNew={newBlockHashes[block.hash] !== undefined}
+            animationIndex={newBlockHashes[block.hash]}
+          />
         ))}
       </BlockCardsContainer>
     );
   };
+
+  // Effect to detect new blocks and mark them for animation
+  useEffect(() => {
+    if (!blocks || blocks.length === 0 || prevBlocksRef.current.length === 0) {
+      // Initialize the ref on first load
+      prevBlocksRef.current = [...blocks];
+      return;
+    }
+    
+    // Find blocks that weren't in the previous state
+    const prevBlocksHashes = new Set(prevBlocksRef.current.map(block => block.hash));
+    const newBlocks = blocks.filter(block => !prevBlocksHashes.has(block.hash));
+    
+    if (newBlocks.length > 0) {
+      // Sort new blocks by height (descending) to ensure proper animation sequence
+      const sortedNewBlocks = [...newBlocks].sort((a, b) => b.height - a.height);
+      
+      // Create object with new block hashes mapped to their animation index
+      const newBlocksObject = {};
+      sortedNewBlocks.forEach((block, index) => {
+        newBlocksObject[block.hash] = index;
+      });
+      
+      // Update the state with new blocks
+      setNewBlockHashes(newBlocksObject);
+      
+      // Clear the animation flags after animation completes
+      // Base time (0.3s per block) + small buffer
+      const animationDuration = sortedNewBlocks.length * 0.3 + 0.5;
+      const timer = setTimeout(() => {
+        setNewBlockHashes({});
+      }, animationDuration * 1000);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    // Update the ref with current blocks for next comparison
+    prevBlocksRef.current = [...blocks];
+  }, [blocks]);
 
   return (
     <HomeContainer>

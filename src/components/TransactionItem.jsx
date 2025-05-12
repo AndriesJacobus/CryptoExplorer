@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { formatTimestamp, formatBtcAmount, truncateMiddle } from '../utils/formatters';
+import { slideInFromLeft, createSequencedAnimation } from '../styles/animations';
 
 /**
  * Component to display a single transaction with expandable details
  */
-const TransactionItem = ({ transaction }) => {
+const TransactionItem = ({ transaction, isNew = false, animationIndex = 0 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleExpand = () => {
@@ -33,7 +34,7 @@ const TransactionItem = ({ transaction }) => {
         return sum + (output.value || 0);
       }, 0);
     } else if (transaction.outputs && Array.isArray(transaction.outputs)) {
-      // Haskoin format (fallback)
+      // HashKoin format (fallback)
       totalOutput = transaction.outputs.reduce((sum, output) => {
         return sum + (output.value || 0);
       }, 0);
@@ -63,7 +64,7 @@ const TransactionItem = ({ transaction }) => {
         };
       }
     } else if (transaction.outputs && transaction.outputs.length > 0) {
-      // Fallback to haskoin format
+      // Fallback to HashKoin format
       primaryToAddress = {
         addr: transaction.outputs[0].addr || 'Unknown Address',
         value: transaction.outputs[0].value || 0
@@ -98,7 +99,7 @@ const TransactionItem = ({ transaction }) => {
   }, [transaction]);
 
   return (
-    <TransactionContainer>
+    <TransactionContainer isNew={isNew} animationIndex={animationIndex}>
       <TransactionSummary onClick={toggleExpand}>
         <TransactionIcon>
           {isExpanded ? '−' : '+'}
@@ -328,6 +329,18 @@ const TransactionContainer = styled.div`
   border-radius: ${({ theme }) => theme.borderRadius.medium};
   margin-bottom: 1rem;
   overflow: hidden;
+  
+  ${({ isNew, animationIndex, theme }) => isNew && createSequencedAnimation(
+    slideInFromLeft,
+    0.5,
+    animationIndex,
+    0.3,
+    theme.colors.primary + '15'
+  )}
+  
+  ${({ isNew, theme }) => isNew && `
+    border-left: 4px solid ${theme.colors.primary};
+  `}
 `;
 
 const TransactionSummary = styled.div`

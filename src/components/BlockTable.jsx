@@ -1,8 +1,9 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { formatTimestamp, formatNumber, truncateMiddle, identifyMiner, formatTimeAgo } from '../utils/formatters';
 import BlockCard from './BlockCard';
+import { slideInFromLeft, createSequencedAnimation } from '../styles/animations';
 
 /**
  * BlockTable component to display blocks in a table format
@@ -11,6 +12,42 @@ import BlockCard from './BlockCard';
 const BlockTable = ({ blocks, isLoading }) => {
   const [hoveredBlock, setHoveredBlock] = useState(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [animatedBlocks, setAnimatedBlocks] = useState({});
+  const prevBlocksRef = useRef([]);
+
+  // Detect new blocks and mark them for animation
+  useEffect(() => {
+    if (!blocks || blocks.length === 0) return;
+    
+    // Filter only new blocks that weren't in the previous blocks array
+    const prevBlockHashes = new Set(prevBlocksRef.current.map(block => block.hash));
+    const newBlocks = blocks.filter(block => !prevBlockHashes.has(block.hash));
+    
+    // Mark new blocks for animation with a sequential index
+    if (newBlocks.length > 0) {
+      const newAnimatedBlocks = {};
+      
+      // Sort new blocks by height (descending) to ensure proper animation sequence
+      const sortedNewBlocks = [...newBlocks].sort((a, b) => b.height - a.height);
+      
+      // Assign animation index to each new block
+      sortedNewBlocks.forEach((block, index) => {
+        newAnimatedBlocks[block.hash] = index;
+      });
+      
+      setAnimatedBlocks(newAnimatedBlocks);
+      
+      // Clear animation flags after all animations complete
+      // Base time (0.5s per block) + small buffer
+      const animationDuration = sortedNewBlocks.length * 0.5 + 0.5;
+      setTimeout(() => {
+        setAnimatedBlocks({});
+      }, animationDuration * 1000);
+    }
+    
+    // Update ref with current blocks for next comparison
+    prevBlocksRef.current = [...blocks];
+  }, [blocks]);
 
   const handleMouseEnter = (block, e) => {
     setHoveredBlock(block);
@@ -60,6 +97,8 @@ const BlockTable = ({ blocks, isLoading }) => {
               onMouseEnter={(e) => handleMouseEnter(block, e)}
               onMouseLeave={handleMouseLeave}
               onMouseMove={handleMouseMove}
+              isNew={animatedBlocks[block.hash] !== undefined}
+              animationIndex={animatedBlocks[block.hash]}
             >
               <TableCell>
                 <HeightLink to={`/btc/block/${block.hash}`}>
@@ -131,6 +170,14 @@ const TableBody = styled.tbody`
 
 const TableRow = styled.tr`
   transition: background-color 0.2s;
+  
+  ${({ isNew, animationIndex, theme }) => isNew && createSequencedAnimation(
+    slideInFromLeft,
+    0.5,
+    animationIndex,
+    0.3,
+    theme.colors.primary + '22'
+  )}
   
   &:hover {
     background-color: ${({ theme }) => theme.colors.backgroundHover};
