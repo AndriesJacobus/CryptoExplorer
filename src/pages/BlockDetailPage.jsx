@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { useMemo, useCallback } from 'react';
 import blockchainService from '../services/api/blockchainService';
 import ErrorMessage from '../components/ErrorMessage';
@@ -72,10 +72,52 @@ const BlockDetailPage = () => {
 
   if (isLoading) {
     return (
-      <LoadingContainer>
-        <LoadingSpinner />
-        <LoadingText>Loading block details...</LoadingText>
-      </LoadingContainer>
+      <BlockDetailContainer>
+        {/* Skeleton Header */}
+        <SkeletonHeaderBanner>
+          <SkeletonHeaderContent>
+            <SkeletonIconCircle />
+            <div style={{ flex: 1 }}>
+              <SkeletonTextBlock height="40px" width="60%" marginBottom="12px" />
+              <SkeletonTextBlock height="20px" width="80%" />
+            </div>
+          </SkeletonHeaderContent>
+        </SkeletonHeaderBanner>
+        
+        <ContentSection>
+          {/* Skeleton Hash Section */}
+          <SkeletonHashSection>
+            <SkeletonTextBlock height="16px" width="120px" marginBottom="12px" />
+            <SkeletonTextBlock height="24px" />
+          </SkeletonHashSection>
+          
+          {/* Skeleton Block Details */}
+          <SkeletonTextBlock height="32px" width="180px" marginBottom="16px" />
+          <BlockDetailsGrid>
+            {Array(15).fill(0).map((_, index) => (
+              <SkeletonDetailItem key={index}>
+                <SkeletonTextBlock height="16px" width="40%" marginBottom="12px" />
+                <SkeletonTextBlock height="24px" width="70%" />
+              </SkeletonDetailItem>
+            ))}
+          </BlockDetailsGrid>
+          
+          {/* Skeleton Navigation */}
+          <SkeletonNavigation>
+            <SkeletonNavButton />
+            <SkeletonNavButton style={{ maxWidth: '120px' }} />
+            <SkeletonNavButton />
+          </SkeletonNavigation>
+          
+          {/* Skeleton Transactions */}
+          <SkeletonTextBlock height="32px" width="220px" marginBottom="16px" />
+          <div>
+            {Array(5).fill(0).map((_, index) => (
+              <SkeletonTransactionItem key={index} />
+            ))}
+          </div>
+        </ContentSection>
+      </BlockDetailContainer>
     );
   }
 
@@ -489,6 +531,116 @@ const NotFoundMessage = styled.div`
   max-width: 800px;
   font-size: 1.2rem;
   color: ${({ theme }) => theme.colors.textLight};
+`;
+
+// Skeleton loading animation
+const shimmer = keyframes`
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: 200px 0;
+  }
+`;
+
+// Skeleton components for loading states
+const SkeletonBase = styled.div`
+  background: ${({ theme }) => theme.colors.backgroundLight};
+  background-image: linear-gradient(
+    90deg,
+    ${({ theme }) => theme.colors.backgroundLight} 0px,
+    ${({ theme }) => theme.colors.background} 40px,
+    ${({ theme }) => theme.colors.backgroundLight} 80px
+  );
+  background-size: 600px 100%;
+  border-radius: ${({ theme }) => theme.borderRadius.small};
+  animation: ${shimmer} 1.5s infinite linear;
+`;
+
+const SkeletonHeaderBanner = styled.div`
+  background-color: ${({ theme }) => theme.colors.primary + '80'}; // 50% opacity
+  padding: 2rem 0;
+  margin-bottom: 2rem;
+  width: 100%;
+`;
+
+const SkeletonHeaderContent = styled.div`
+  display: flex;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
+const SkeletonIconCircle = styled(SkeletonBase)`
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin-right: 1.5rem;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 1rem;
+  }
+`;
+
+const SkeletonTextBlock = styled(SkeletonBase)`
+  height: ${({ height }) => height || '24px'};
+  width: ${({ width }) => width || '100%'};
+  margin-bottom: ${({ marginBottom }) => marginBottom || '8px'};
+  border-radius: 4px;
+`;
+
+const SkeletonHashSection = styled.div`
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: ${({ theme }) => theme.colors.backgroundLight};
+  border-radius: ${({ theme }) => theme.borderRadius.medium};
+`;
+
+const SkeletonDetailItem = styled.div`
+  background-color: ${({ theme }) => theme.colors.backgroundLight};
+  padding: 1rem;
+  border-radius: ${({ theme }) => theme.borderRadius.medium};
+`;
+
+const SkeletonNavigation = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin: 2rem 0;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+`;
+
+const SkeletonNavButton = styled(SkeletonBase)`
+  height: 45px;
+  flex: 1;
+  margin: 0 0.5rem;
+  
+  &:first-child {
+    margin-left: 0;
+  }
+  
+  &:last-child {
+    margin-right: 0;
+  }
+  
+  @media (max-width: 768px) {
+    margin: 0;
+  }
+`;
+
+const SkeletonTransactionItem = styled(SkeletonBase)`
+  height: 80px;
+  margin-bottom: 0.75rem;
+  border-radius: ${({ theme }) => theme.borderRadius.medium};
 `;
 
 export default BlockDetailPage;
