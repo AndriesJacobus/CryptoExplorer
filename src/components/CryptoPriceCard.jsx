@@ -1,19 +1,20 @@
 import React from 'react';
 import styled from 'styled-components';
 import { formatNumber } from '../utils/formatters';
+import { slideInFromLeft, createSequencedAnimation } from '../styles/animations';
 
 /**
  * Component for displaying cryptocurrency price and market information
  * Enhanced to be fully responsive on mobile screens
  */
-const CryptoPriceCard = ({ crypto }) => {
+const CryptoPriceCard = ({ crypto, isNew = false, animationIndex = 0 }) => {
   const { name, symbol, price, change24h, marketCap, logo } = crypto;
   
   // Determine if price change is positive or negative
   const isPriceUp = change24h >= 0;
   
   return (
-    <CardContainer>
+    <CardContainer isNew={isNew} animationIndex={animationIndex}>
       <CardHeader>
         {logo && <CryptoLogo src={logo} alt={``} />}
         <CryptoName>{name}</CryptoName>
@@ -46,6 +47,18 @@ const CardContainer = styled.div`
   max-width: 100%; /* Prevent overflow */
   box-sizing: border-box; /* Include padding in width calculation */
   overflow: hidden; /* Prevent content from causing overflow */
+  
+  ${({ isNew, animationIndex, theme }) => isNew && createSequencedAnimation(
+    slideInFromLeft,
+    0.5,
+    animationIndex,
+    0.3,
+    theme.colors.primary + '15'
+  )}
+  
+  ${({ isNew, theme }) => isNew && `
+    border-left: 4px solid ${theme.colors.primary};
+  `}
   
   @media (max-width: 480px) {
     padding: 1rem; /* Slightly reduce padding on very small screens */

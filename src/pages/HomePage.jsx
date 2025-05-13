@@ -29,6 +29,9 @@ const HomePage = () => {
   const prevBlocksRef = useRef([]);
   // State to track newly added blocks that should be animated
   const [newBlockHashes, setNewBlockHashes] = useState({});
+  // Add state to track newly added cryptocurrency for animations
+  const [newCryptos, setNewCryptos] = useState({});
+  const prevCryptosRef = useRef([]);
   
   // Effect to handle window resize and determine if mobile view should be shown
   useEffect(() => {
@@ -203,6 +206,67 @@ const HomePage = () => {
     prevBlocksRef.current = [...blocks];
   }, [blocks]);
 
+  // Effect to detect new cryptocurrencies and mark them for animation
+  useEffect(() => {
+    // If cryptoPrices is undefined or empty, don't proceed
+    if (!cryptoPrices || !Array.isArray(cryptoPrices) || cryptoPrices.length === 0) {
+      return;
+    }
+    
+    // For first load, animate all cryptos
+    if (prevCryptosRef.current.length === 0) {
+      // Create animation indices for all cryptos on initial load
+      const initialCryptosObject = {};
+      cryptoPrices.forEach((crypto, index) => {
+        initialCryptosObject[crypto.id] = index;
+      });
+      
+      // Set animation state
+      setNewCryptos(initialCryptosObject);
+      
+      // Clear the animation flags after animation completes
+      const animationDuration = cryptoPrices.length * 0.3 + 0.5;
+      const timer = setTimeout(() => {
+        setNewCryptos({});
+      }, animationDuration * 1000);
+      
+      // Store current cryptos for next comparison
+      prevCryptosRef.current = [...cryptoPrices];
+      return () => clearTimeout(timer);
+    }
+    
+    // For subsequent loads, only animate new cryptos
+    // Find cryptocurrencies that weren't in the previous state
+    const prevCryptosIds = new Set(prevCryptosRef.current.map(crypto => crypto.id));
+    const newCryptosList = cryptoPrices.filter(crypto => !prevCryptosIds.has(crypto.id));
+    
+    if (newCryptosList.length > 0) {
+      // Sort new cryptocurrencies by market cap (descending) to ensure proper animation sequence
+      const sortedNewCryptos = [...newCryptosList].sort((a, b) => b.marketCap - a.marketCap);
+      
+      // Create object with new cryptocurrency ids mapped to their animation index
+      const newCryptosObject = {};
+      sortedNewCryptos.forEach((crypto, index) => {
+        newCryptosObject[crypto.id] = index;
+      });
+      
+      // Update the state with new cryptocurrencies
+      setNewCryptos(newCryptosObject);
+      
+      // Clear the animation flags after animation completes
+      // Base time (0.3s per crypto) + small buffer
+      const animationDuration = sortedNewCryptos.length * 0.3 + 0.5;
+      const timer = setTimeout(() => {
+        setNewCryptos({});
+      }, animationDuration * 1000);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    // Update the ref with current cryptocurrencies for next comparison
+    prevCryptosRef.current = [...cryptoPrices];
+  }, [cryptoPrices]);
+
   return (
     <HomeContainer>
       <HeaderSection>
@@ -229,7 +293,12 @@ const HomePage = () => {
           {!cryptoLoading && !cryptoError && cryptoPrices?.length > 0 && (
             <CryptoCardsList>
               {cryptoPrices.map(crypto => (
-                <CryptoPriceCard key={crypto.id} crypto={crypto} />
+                <CryptoPriceCard 
+                  key={crypto.id} 
+                  crypto={crypto} 
+                  isNew={newCryptos[crypto.id] !== undefined}
+                  animationIndex={newCryptos[crypto.id]}
+                />
               ))}
             </CryptoCardsList>
           )}
