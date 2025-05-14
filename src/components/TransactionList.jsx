@@ -222,7 +222,7 @@ const TransactionList = memo(({ blockHash, transactionHashes, initialCount = 10 
   return (
     <Container>
       {allTransactions.length === 0 && !isLoading && (
-        <EmptyMessage>No transactions found for this block.</EmptyMessage>
+        <EmptyMessage data-testid="no-transactions-message">No transactions found for this block.</EmptyMessage>
       )}
 
       {allTransactions.length > 0 && (

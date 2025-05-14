@@ -99,7 +99,11 @@ const TransactionItem = ({ transaction, isNew = false, animationIndex = 0 }) => 
   }, [transaction]);
 
   return (
-    <TransactionContainer isNew={isNew} animationIndex={animationIndex}>
+    <TransactionContainer 
+      $isNew={isNew} 
+      $animationIndex={animationIndex}
+      data-testid={`transaction-${transaction.txid || transaction.hash}`}
+    >
       <TransactionSummary onClick={toggleExpand}>
         <TransactionIcon>
           {isExpanded ? '−' : '+'}
@@ -168,7 +172,7 @@ const TransactionItem = ({ transaction, isNew = false, animationIndex = 0 }) => 
             <DetailRow>
               <DetailLabel>Status:</DetailLabel>
               <DetailValue>
-                <StatusIndicator confirmed={transaction.confirmations > 0} />
+                <StatusIndicator $confirmed={transaction.confirmations > 0} />
                 {transaction.confirmations > 0 ? 'Confirmed' : 'Unconfirmed'}
                 {transaction.confirmations > 0 && ` (${transaction.confirmations} confirmations)`}
               </DetailValue>
@@ -286,7 +290,7 @@ function renderOutputs(transaction) {
       const value = output.value || 0;
       
       return (
-        <AddressItem key={index} isPrimary={index === 0}>
+        <AddressItem key={index} $isPrimary={index === 0}>
           <AddressHash title={address}>
             {index === 0 && <OutputLabel>TO: </OutputLabel>}
             {truncateMiddle(address, 18, 18)}
@@ -306,7 +310,7 @@ function renderOutputs(transaction) {
       const value = output.value || 0;
       
       return (
-        <AddressItem key={index} isPrimary={index === 0}>
+        <AddressItem key={index} $isPrimary={index === 0}>
           <AddressHash title={address}>
             {index === 0 && <OutputLabel>TO: </OutputLabel>}
             {truncateMiddle(address, 18, 18)}
@@ -330,15 +334,15 @@ const TransactionContainer = styled.div`
   margin-bottom: 1rem;
   overflow: hidden;
   
-  ${({ isNew, animationIndex, theme }) => isNew && createSequencedAnimation(
+  ${({ $isNew, $animationIndex, theme }) => $isNew && createSequencedAnimation(
     slideInFromLeft,
     0.5,
-    animationIndex,
+    $animationIndex,
     0.3,
     theme.colors.primary + '15'
   )}
   
-  ${({ isNew, theme }) => isNew && `
+  ${({ $isNew, theme }) => $isNew && `
     border-left: 4px solid ${theme.colors.primary};
   `}
 `;
@@ -465,7 +469,7 @@ const StatusIndicator = styled.span`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background-color: ${({ theme, confirmed }) => confirmed ? theme.colors.success : theme.colors.warning};
+  background-color: ${({ theme, $confirmed }) => $confirmed ? theme.colors.success : theme.colors.warning};
   margin-right: 0.5rem;
 `;
 
@@ -492,8 +496,8 @@ const AddressItem = styled.div`
   padding: 0.75rem;
   border-bottom: 1px solid ${({ theme }) => theme.colors.border};
   font-size: ${({ theme }) => theme.fontSizes.small};
-  background-color: ${({ theme, isPrimary }) => 
-    isPrimary ? theme.colors.backgroundSuccess : 'inherit'};
+  background-color: ${({ theme, $isPrimary }) => 
+    $isPrimary ? theme.colors.backgroundSuccess : 'inherit'};
   
   &:last-child {
     border-bottom: none;

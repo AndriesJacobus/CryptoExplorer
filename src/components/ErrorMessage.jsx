@@ -17,11 +17,11 @@ const ErrorMessage = ({ error, message, onRetry }) => {
   const isCorsError = error?.type === 'CORS_ERROR';
 
   return (
-    <ErrorContainer>
+    <ErrorContainer data-testid="error-message-container">
       <ErrorIcon aria-hidden="true">!</ErrorIcon>
       <ErrorContent>
         <ErrorTitle>Error</ErrorTitle>
-        <ErrorText>{displayMessage}</ErrorText>
+        <ErrorText data-testid="error-message-text">{displayMessage}</ErrorText>
         
         {/* Special instructions for CORS errors */}
         {isCorsError && (
