@@ -146,13 +146,14 @@ export const identifyMiner = (coinbaseData, rawBlockData = null) => {
     { pattern: '2f42696e616e63652f', name: 'Binance Pool' },  // '/Binance/' in hex
   ];
 
+  // Early return for invalid input cases
   if (!coinbaseData && !rawBlockData) {
     return 'Unknown Miner';
   }
 
   try {
     // APPROACH 1: Check coinbase script pattern if available
-    if (coinbaseData) {
+    if (coinbaseData && typeof coinbaseData === 'string') {
       const coinbaseDataLower = coinbaseData.toLowerCase();
       
       // Try to match known hex patterns
@@ -191,11 +192,12 @@ export const identifyMiner = (coinbaseData, rawBlockData = null) => {
     }
     
     // APPROACH 2: Check block data for miner information if available
-    if (rawBlockData && rawBlockData.tx && rawBlockData.tx.length > 0) {
+    if (rawBlockData && typeof rawBlockData === 'object' && 
+        rawBlockData.tx && Array.isArray(rawBlockData.tx) && rawBlockData.tx.length > 0) {
       const coinbaseTx = rawBlockData.tx[0];
       
       // Check coinbase transaction output addresses
-      if (coinbaseTx.out && coinbaseTx.out.length > 0) {
+      if (coinbaseTx.out && Array.isArray(coinbaseTx.out) && coinbaseTx.out.length > 0) {
         for (const output of coinbaseTx.out) {
           if (output.addr && minerAddresses[output.addr]) {
             return minerAddresses[output.addr];
@@ -205,7 +207,7 @@ export const identifyMiner = (coinbaseData, rawBlockData = null) => {
     }
     
     // APPROACH 3: Check for generic pool indicators in coinbase data
-    if (coinbaseData) {
+    if (coinbaseData && typeof coinbaseData === 'string') {
       const coinbaseDataLower = coinbaseData.toLowerCase();
       if (coinbaseDataLower.includes('706f6f6c')) return 'Mining Pool'; // 'pool' in hex
     }
@@ -257,6 +259,11 @@ export const formatTimeAgo = (timestamp) => {
  */
 export const calculateDifficulty = (blockData) => {
   try {
+    // Handle invalid inputs
+    if (blockData === null || blockData === undefined) {
+      return 0;
+    }
+    
     // Extract the bits field from block data if an object is passed
     let bits;
     if (typeof blockData === 'object') {
@@ -278,32 +285,77 @@ export const calculateDifficulty = (blockData) => {
       bits = blockData;
     }
     
-    // Convert bits to hexadecimal if it's not already
-    const bitsHex = typeof bits === 'string' && bits.startsWith('0x') 
-      ? bits 
-      : '0x' + parseInt(bits, 10).toString(16);
+    // Convert bits to hexadecimal string if it's not already
+    let bitsHex;
+    if (typeof bits === 'string') {
+      bitsHex = bits.startsWith('0x') ? bits : '0x' + bits;
+    } else if (typeof bits === 'number') {
+      bitsHex = '0x' + bits.toString(16).padStart(8, '0');
+    } else {
+      return 0; // Invalid bits format
+    }
     
-    // Extract the exponent (first byte) and coefficient (remaining bytes)
-    const exponent = parseInt(bitsHex.substring(2, 4), 16);
-    const coefficient = parseInt(bitsHex.substring(4), 16);
+    // Parse the bits value - Bitcoin "bits" field is a packed representation
+    const bitsVal = parseInt(bitsHex, 16);
+    if (isNaN(bitsVal)) {
+      return 0; // Invalid bits format
+    }
+
+    // Bitcoin difficulty calculation according to the Bitcoin protocol
     
-    // Calculate the target using the formula: target = coefficient * 2^(8 * (exponent - 3))
-    // We need to use BigInt for these calculations to handle large numbers
-    const shiftAmount = 8n * BigInt(exponent - 3);
-    const target = BigInt(coefficient) * (2n ** shiftAmount);
+    // Extract exponent and mantissa from bits
+    const exponent = bitsVal >> 24;
+    const mantissa = bitsVal & 0x00FFFFFF;
     
-    // Calculate difficulty using the maximum target (difficulty = 1) divided by current target
-    // Maximum target = 0xFFFF * 2^208
-    const maxTargetCoefficient = BigInt(0xFFFF);
-    const maxTargetShift = 208n;
-    const maxTarget = maxTargetCoefficient * (2n ** maxTargetShift);
+    // Handle invalid values
+    if (mantissa === 0 || exponent === 0) {
+      return 0;
+    }
     
-    // Difficulty = maxTarget / currentTarget
-    const difficulty = Number(maxTarget / target);
+    // Handle special case: genesis block
+    if (bitsHex === '0x1d00ffff') {
+      return 1.0;
+    }
     
-    return difficulty;
+    try {
+      // The highest target (lowest difficulty) in Bitcoin (difficulty 1)
+      // is 0x00000000FFFF0000000000000000000000000000000000000000000000000000
+      
+      // Step 1: Calculate the target from the bits representation
+      // In Bitcoin's compact representation: target = mantissa * 256^(exponent-3)
+      let target;
+      
+      // Use BigInt for precise calculations with large numbers
+      if (exponent <= 3) {
+        // Shift right if exponent is small
+        target = BigInt(mantissa) >> BigInt(8 * (3 - exponent));
+      } else {
+        // Shift left for normal case
+        target = BigInt(mantissa) << BigInt(8 * (exponent - 3));
+      }
+      
+      // The original maximum target (difficulty 1) used in Bitcoin
+      // This is 0x00000000FFFF0000000000000000000000000000000000000000000000000000
+      // Which can be represented as 0xFFFF << 208
+      const maxTarget = BigInt(0xFFFF) << BigInt(208);
+      
+      // Step 2: Difficulty = maxTarget / current target
+      // This follows the formula specified in Bitcoin's documentation
+      if (target === BigInt(0)) {
+        return 0; // Prevent division by zero
+      }
+      
+      // Calculate difficulty as the ratio between maximum target and current target
+      // This will be very large for recent Bitcoin blocks (in the trillions)
+      const difficulty = Number(maxTarget / target);
+      
+      return difficulty;
+    } catch (error) {
+      console.error('Error in difficulty calculation:', error);
+      return 0;
+    }
   } catch (error) {
     console.error('Error calculating difficulty:', error);
-    return 0; // Return 0 if calculation fails
+    return 0;
   }
 };

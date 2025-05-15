@@ -1,22 +1,18 @@
 import React from 'react';
-import { describe, expect, vi, beforeEach, test } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ThemeProvider } from 'styled-components';
-import theme from '../styles/theme';
 import ErrorMessage from './ErrorMessage';
-import * as errorHandlingService from '../services/api/errorHandlingService';
+import theme from '../styles/theme';
+import { getUserFriendlyMessage } from '../services/api/errorHandlingService';
 
-// Mock the error handling service
+// Mock the errorHandlingService
 vi.mock('../services/api/errorHandlingService', () => ({
   getUserFriendlyMessage: vi.fn((error) => {
-    if (error?.type === 'NETWORK_ERROR') {
-      return 'Unable to connect to the server. Please check your internet connection.';
+    if (error?.message) {
+      return `Friendly: ${error.message}`;
     }
-    if (error?.type === 'NOT_FOUND') {
-      return 'The requested resource was not found.';
-    }
-    return 'An unexpected error occurred.';
+    return 'Unknown error occurred';
   })
 }));
 
@@ -31,96 +27,102 @@ describe('ErrorMessage Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
-  
-  test('renders default error message when no error or message provided', () => {
-    renderWithTheme(<ErrorMessage />);
+
+  it('renders with the provided error message', () => {
+    const errorObj = { message: 'API request failed' };
+    renderWithTheme(<ErrorMessage error={errorObj} />);
     
-    // Check that the component renders with the default message
-    expect(screen.getByText('Error')).toBeInTheDocument();
-    expect(screen.getByText('An error occurred')).toBeInTheDocument();
+    // Check that the error message is displayed
+    expect(screen.getByTestId('error-message-text')).toHaveTextContent('Friendly: API request failed');
+    
+    // Check that getUserFriendlyMessage was called with the error object
+    expect(getUserFriendlyMessage).toHaveBeenCalledWith(errorObj);
   });
-  
-  test('displays custom message when provided', () => {
-    const customMessage = 'This is a custom error message';
-    renderWithTheme(<ErrorMessage message={customMessage} />);
+
+  it('uses custom message when provided', () => {
+    const errorObj = { message: 'API request failed' };
+    const customMessage = 'Custom error message';
+    renderWithTheme(<ErrorMessage error={errorObj} message={customMessage} />);
     
-    // Custom message should take precedence
-    expect(screen.getByText(customMessage)).toBeInTheDocument();
+    // Check that the custom message is displayed instead of the error message
+    expect(screen.getByTestId('error-message-text')).toHaveTextContent(customMessage);
     
     // getUserFriendlyMessage should not be called when a custom message is provided
-    expect(errorHandlingService.getUserFriendlyMessage).not.toHaveBeenCalled();
+    expect(getUserFriendlyMessage).not.toHaveBeenCalled();
   });
-  
-  test('gets user-friendly message from error handling service', () => {
-    const mockError = { type: 'NETWORK_ERROR', message: 'Network error' };
-    renderWithTheme(<ErrorMessage error={mockError} />);
+
+  it('displays default message when no error or message is provided', () => {
+    renderWithTheme(<ErrorMessage />);
     
-    // Service should be called with the error
-    expect(errorHandlingService.getUserFriendlyMessage).toHaveBeenCalledWith(mockError);
-    
-    // Friendly message from service should be displayed
-    expect(screen.getByText('Unable to connect to the server. Please check your internet connection.')).toBeInTheDocument();
+    // Check that the default error message is displayed
+    expect(screen.getByTestId('error-message-text')).toHaveTextContent('An error occurred');
   });
-  
-  test('displays try again button when onRetry prop is provided', () => {
-    const mockRetry = vi.fn();
-    renderWithTheme(<ErrorMessage onRetry={mockRetry} />);
+
+  it('renders a retry button when onRetry function is provided', () => {
+    const onRetry = vi.fn();
+    renderWithTheme(<ErrorMessage onRetry={onRetry} />);
     
-    // Button should be visible
+    // Check that the retry button is rendered
     const retryButton = screen.getByText('Try Again');
     expect(retryButton).toBeInTheDocument();
     
-    // Button should call the retry function when clicked
+    // Click the retry button
     fireEvent.click(retryButton);
-    expect(mockRetry).toHaveBeenCalledTimes(1);
+    
+    // Check that the onRetry function was called
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
-  
-  test('does not display retry button when onRetry is not provided', () => {
+
+  it('does not render a retry button when no onRetry function is provided', () => {
     renderWithTheme(<ErrorMessage />);
     
-    // Button should not be visible
+    // Check that the retry button is not rendered
     expect(screen.queryByText('Try Again')).not.toBeInTheDocument();
   });
-  
-  test('displays CORS-specific instructions for CORS errors', () => {
+
+  it('renders special instructions for CORS errors', () => {
     const corsError = { type: 'CORS_ERROR', message: 'CORS error' };
     renderWithTheme(<ErrorMessage error={corsError} />);
     
-    // Should display CORS-specific help text
+    // Check that CORS-specific instructions are displayed
     expect(screen.getByText('This application requires CORS to be enabled to access the blockchain API.')).toBeInTheDocument();
-    expect(screen.getByText('Install the Allow CORS extension')).toBeInTheDocument();
+    
+    // Check that the link to install the CORS extension is present
+    const corsLink = screen.getByText('Install the Allow CORS extension');
+    expect(corsLink).toBeInTheDocument();
+    expect(corsLink).toHaveAttribute('href', expect.stringContaining('chrome.google.com/webstore'));
+    expect(corsLink).toHaveAttribute('target', '_blank');
+    
+    // Check that the refresh instructions are present
     expect(screen.getByText('After installing, enable the extension and refresh this page.')).toBeInTheDocument();
   });
-  
-  test('does not display CORS instructions for non-CORS errors', () => {
-    const nonCorsError = { type: 'NETWORK_ERROR', message: 'Network error' };
+
+  it('does not render CORS instructions for non-CORS errors', () => {
+    const nonCorsError = { type: 'API_ERROR', message: 'API error' };
     renderWithTheme(<ErrorMessage error={nonCorsError} />);
     
-    // Should not display CORS-specific help text
+    // Check that CORS-specific instructions are not displayed
     expect(screen.queryByText('This application requires CORS to be enabled to access the blockchain API.')).not.toBeInTheDocument();
     expect(screen.queryByText('Install the Allow CORS extension')).not.toBeInTheDocument();
   });
-  
-  test('renders with the correct styling', () => {
-    const { container } = renderWithTheme(<ErrorMessage />);
+
+  it('renders with the correct styling', () => {
+    renderWithTheme(<ErrorMessage />);
     
-    // Check error container has error styling
+    // Check that the error container has the correct styling
     const errorContainer = screen.getByTestId('error-message-container');
     expect(errorContainer).toHaveStyle('background-color: #fff1f0');
+    expect(errorContainer).toHaveStyle(`border: 1px solid ${theme.colors.error}`);
     
-    // Error icon should be present
-    const errorIcon = container.querySelector('div[aria-hidden="true"]');
+    // Check that the error icon is rendered with the correct styling
+    const errorIcon = screen.getByText('!');
     expect(errorIcon).toBeInTheDocument();
-    expect(errorIcon).toHaveTextContent('!');
-  });
-  
-  test('handles errors with undefined properties gracefully', () => {
-    // Error with undefined properties
-    const incompleteError = { };
-    renderWithTheme(<ErrorMessage error={incompleteError} />);
+    expect(errorIcon).toHaveStyle(`background-color: ${theme.colors.error}`);
+    expect(errorIcon).toHaveStyle('color: rgb(255, 255, 255)');
     
-    // Should still render without crashing
-    expect(screen.getByTestId('error-message-container')).toBeInTheDocument();
-    expect(errorHandlingService.getUserFriendlyMessage).toHaveBeenCalledWith(incompleteError);
+    // Check that the error title is rendered with the correct styling
+    const errorTitle = screen.getByText('Error');
+    expect(errorTitle).toBeInTheDocument();
+    expect(errorTitle).toHaveStyle(`color: ${theme.colors.error}`);
   });
 });
