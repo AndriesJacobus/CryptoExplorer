@@ -808,4 +808,4 @@ For questions or feedback, please open an issue on GitHub or contact the project
 
 ---
 
-*This project was developed as part of a coding assessment and serves as a demonstration of modern frontend development practices.*
+Made with 💚 by [Andries Jacobus](github.com/andriesJacobus)
